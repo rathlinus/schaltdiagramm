@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Box Container</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="wrapper-selector">
+      <label for="wrapper-type">Select Device Type:</label>
+      <select id="wrapper-type" onchange="changeWrapperType()">
+        <option value="Mixer">Mixer</option>
+        <option value="Lautsprecher">Lautsprecher</option>
+        <option value="Splitter">Splitter</option>
+      </select>
+      <button onclick="addWrapper()">Add Wrapper</button>
+    </div>
+    <div class="wrapper-container"></div>
+    <script src="script.js"></script>
+  </body>
+</html>
