@@ -1,0 +1,160 @@
+* {
+  box-sizing: border-box !important;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-user-select: none;
+}
+
+body {
+  width: 100vw;
+  height: 100vh;
+}
+
+h2 {
+  height: 25px;
+}
+.wrapper {
+  position: absolute;
+  cursor: move;
+  border: 1px black solid;
+}
+
+.container {
+  width: 450px;
+  min-height: 100px;
+  background-color: #fff;
+  display: flex;
+  justify-content: space-between;
+  margin: auto;
+  position: relative;
+  z-index: 2 !important;
+}
+
+.container-lautsprecher {
+  width: 300px;
+}
+
+.box-container {
+  width: 150px;
+  height: inherit !important;
+}
+
+.box-container > * {
+  flex-grow: 1;
+}
+
+.box {
+  min-height: 50px;
+  flex: 1;
+  background-color: lightblue;
+}
+
+.buttons {
+  height: 25px;
+  border-radius: 0px;
+  border: 1px black solid;
+}
+
+.addbutton {
+  width: 100%;
+  height: 100%;
+}
+
+.connector {
+  width: 100%;
+  height: 100%;
+  min-height: 50px;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+  border: 1px black solid;
+}
+
+.devicename {
+  height: calc(100% - 50px);
+  margin-top: 50px;
+  background-color: rgb(217, 217, 217);
+  text-align: center;
+}
+
+.device {
+  height: calc(100% - 50px);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+#left-container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch !important;
+}
+
+#right-container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch !important;
+}
+
+textarea.devicename {
+  text-align: center;
+  display: block;
+  width: 100% !important;
+}
+
+.grid-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Allows clicks to pass through */
+  z-index: 0 !important;
+}
+
+.grid-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background-color: gray;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.close-button {
+  position: fixed;
+  transform: translate(-280%, 90%);
+  background: none;
+  border: none;
+  color: red;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.anchor-point-left {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: grey;
+  border-radius: 50%;
+  cursor: pointer;
+  transform: translate(-50%, 75%);
+}
+
+.anchor-point-right {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  right: 0;
+  background-color: grey;
+  border-radius: 50%;
+  cursor: pointer;
+  transform: translate(50%, 75%);
+}
+
+.line {
+  height: 2px;
+  background-color: black;
+  transform-origin: 0 0;
+}
