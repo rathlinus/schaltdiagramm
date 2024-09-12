@@ -7,16 +7,36 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="wrapper-selector">
-      <label for="wrapper-type">Select Device Type:</label>
-      <select id="wrapper-type" onchange="changeWrapperType()">
-        <option value="Mixer">Mixer</option>
-        <option value="Lautsprecher">Lautsprecher</option>
-        <option value="Splitter">Splitter</option>
-      </select>
-      <button onclick="addWrapper()">Add Wrapper</button>
+    <div id="sidebar">
+      <div>
+        <div id="editindicator"></div>
+        <button id="editmode" class="modeselector" onclick="editmode(true)">
+          Edit Mode
+        </button>
+        <button id="viewmode" class="modeselector" onclick="editmode(false)">
+          View Mode
+        </button>
+      </div>
+      <div class="wrapper-selector">
+        <label for="wrapper-type">Select Device Type:</label>
+        <select id="wrapper-type" onchange="changeWrapperType()">
+          <option value="Mixer">Mixer</option>
+          <option value="Lautsprecher">Lautsprecher</option>
+          <option value="Splitter">Splitter</option>
+        </select>
+        <button onclick="addWrapper()">Add Device</button>
+      </div>
     </div>
+
     <div class="wrapper-container"></div>
+    <svg
+      id="connection-lines"
+      width="100%"
+      height="100%"
+      style="position: absolute; top: 0; left: 0; z-index: 1"
+      pointer-events="none"
+    ></svg>
+
     <script src="script.js"></script>
   </body>
 </html>
