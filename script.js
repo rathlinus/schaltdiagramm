@@ -4,6 +4,77 @@ let connections = [];
 let currentDraggingAnchor = null;
 let currentLine = null;
 
+let scale = 1;
+let panX = 0;
+let panY = 0;
+let isPanning = false;
+let isDraggingWrapper = false; // New flag to detect when dragging a wrapper
+let startX = 0;
+let startY = 0;
+const gridSize = 25; // Size of the grid
+const primary = document.querySelector(".primary");
+const wrapperContainer = document.querySelector(".wrapper-container");
+const gridContainer = document.querySelector(".grid-container");
+const zoomSpeed = 0.001; // Slower zoom
+const panSpeed = 1;
+
+// Event listener for zooming
+primary.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  const zoom = e.deltaY * -zoomSpeed;
+
+  // Apply scaling
+  scale += zoom;
+  scale = Math.min(Math.max(0.1, scale), 4); // Clamp zoom between 0.1 and 4
+  updateTransform();
+  updateGrid();
+});
+
+// Event listeners for panning (only with middle mouse button)
+primary.addEventListener("mousedown", (e) => {
+  // Check if middle mouse button is pressed for panning
+  if (e.button === 1 && !isDraggingWrapper) {
+    isPanning = true;
+    primary.style.cursor = "grabbing";
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    e.preventDefault();
+  } else if (e.button === 0 && e.target.classList.contains("anchor-point")) {
+    // Start dragging the anchor point, no panning
+    isDraggingWrapper = true; // Set flag only for dragging
+  }
+});
+
+primary.addEventListener("mousemove", (e) => {
+  if (isPanning) {
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    updateTransform();
+    updateGrid(); // Update the grid as you pan
+  }
+});
+
+primary.addEventListener("mouseup", (e) => {
+  if (e.button === 1) {
+    // Stop panning when the middle mouse button is released
+    isPanning = false;
+    primary.style.cursor = "pointer";
+  }
+});
+
+primary.addEventListener("mouseleave", () => {
+  isPanning = false;
+  primary.style.cursor = "pinter";
+});
+
+function updateTransform() {
+  // Apply the translate and scale transformations to the wrapper container
+  wrapperContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+
+  // Update the grid's background position and size, but not using translate
+  updateGrid();
+}
+
 function uuidv4() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0;
@@ -21,7 +92,6 @@ function addWrapper() {
     changeWrapperType();
   }
 
-  console.log(selectedtype);
   const wrapperContainer = document.querySelector(".wrapper-container");
   const newWrapper = document.createElement("div");
   newWrapper.className = "wrapper";
@@ -30,7 +100,7 @@ function addWrapper() {
   if (selectedtype == "Mixer") {
     newWrapper.innerHTML = `
     <div class="container" id="container-${newWrapper.id}">
-            <button onclick="deletewrapper('${newWrapper.id}')" class="removebutton">X</button>
+            <button onclick="deletewrapper('${newWrapper.id}')" class="removebutton viewmode">X</button>
 
       <div class="box-container">
 
@@ -48,7 +118,7 @@ function addWrapper() {
         </div>
       </div>
     </div>
-    <div class="grid-container"></div>
+    
   `;
   }
 
@@ -73,7 +143,6 @@ function addWrapper() {
         </div>
       </div>
     </div>
-    <div class="grid-container"></div>
   `;
   }
 
@@ -91,10 +160,14 @@ function addWrapper() {
         <textarea type="text" class="devicename"></textarea>
       </div>
     </div>
-    <div class="grid-container"></div>
   `;
   }
   wrapperContainer.appendChild(newWrapper);
+
+  //move wrapper to the right position
+  newWrapper.style.left = "calc(50vw - 225px)";
+  newWrapper.style.top = "calc(50vh - 100px)";
+
   //add one box to the left and right side
   addBox("left", newWrapper.id);
   addBox("right", newWrapper.id);
@@ -103,18 +176,23 @@ function addWrapper() {
 
 function addDragAndDrop(wrapper) {
   let isDragging = false;
+  let isDraggingAnchor = false; // New flag for anchor dragging
   let startX, startY, initialX, initialY;
 
   wrapper.addEventListener("mousedown", function (e) {
     if (e.target.classList.contains("anchor-point")) {
+      // Anchor dragging logic
+      isDraggingAnchor = true;
       currentDraggingAnchor = e.target;
       startX = e.clientX;
       startY = e.clientY;
       currentLine = createLine(startX, startY, startX, startY);
       document.addEventListener("mousemove", onAnchorMouseMove);
       document.addEventListener("mouseup", onAnchorMouseUp);
-      return;
+      return; // Exit here to avoid triggering wrapper dragging logic
     }
+
+    // Wrapper dragging logic
     isDragging = true;
     startX = e.clientX;
     startY = e.clientY;
@@ -347,6 +425,7 @@ function updateConnections() {
   connections.forEach((connection) => {
     const fromAnchor = document.getElementById(connection.from);
     const toAnchor = document.getElementById(connection.to);
+
     if (fromAnchor && toAnchor) {
       const fromRect = fromAnchor.getBoundingClientRect();
       const toRect = toAnchor.getBoundingClientRect();
@@ -362,13 +441,16 @@ function updateConnections() {
 
       // Redraw the line with the updated midpoint
       updateLineFromStoredData(connection);
+    } else {
+      console.warn(
+        `Anchors not found for connection from ${connection.from} to ${connection.to}`
+      );
     }
   });
 
   // Adjust duplicate midpoints to avoid overlap
   adjustDuplicateMidpoints();
 }
-
 function preventLineOverlaps() {
   connections.forEach((connection, index) => {
     connections.forEach((otherConnection, otherIndex) => {
@@ -452,7 +534,7 @@ function updateLineWithProximityCheck(polyline, x1, y1, x2, y2) {
   polyline.setAttribute("points", points);
 }
 
-function addBox(side, wrapperId) {
+function addBox(side, wrapperId, parentBoxId = null) {
   const container = document.getElementById(`${side}-container-${wrapperId}`);
   const box = document.createElement("div");
   box.className = "box";
@@ -473,7 +555,7 @@ function addBox(side, wrapperId) {
 
   const closeButton = document.createElement("button");
   closeButton.textContent = "x";
-  closeButton.className = "close-button";
+  closeButton.className = "close-button viewmode";
   closeButton.addEventListener("click", () => {
     container.removeChild(box);
     // also remove the connection from the connections array and the svg
@@ -495,15 +577,22 @@ function addBox(side, wrapperId) {
   box.appendChild(closeButton);
 
   // Create and append the plus icon
+  box.id = uuidv4();
   const plusIcon = document.createElement("div");
-  plusIcon.className = "plus-icon";
+  plusIcon.className = "plus-icon viewmode";
   plusIcon.textContent = "+";
   plusIcon.addEventListener("click", () => {
-    addBox(side, wrapperId);
+    addBox(side, wrapperId, box.id);
   });
   box.appendChild(plusIcon);
 
-  container.appendChild(box);
+  // Insert the new box into the DOM at the correct position
+  if (parentBoxId) {
+    const parentBox = document.getElementById(parentBoxId);
+    parentBox.insertAdjacentElement("afterend", box);
+  } else {
+    container.appendChild(box); // If no parent, just append it
+  }
 }
 
 function createLine(x1, y1, x2, y2) {
@@ -574,26 +663,25 @@ function updateLine(polyline, x1, y1, x2, y2) {
   polyline.setAttribute("points", points);
 }
 
-function createGrid() {
-  const gridContainer = document.createElement("div");
-  gridContainer.className = "grid-container";
-  document.body.appendChild(gridContainer);
+function updateGrid() {
+  const scaledGridSize = gridSize * scale;
 
-  const width = window.innerWidth;
-  const height = window.innerHeight;
+  // Calculate the background position by taking into account the pan and zoom
+  const offsetX = (panX % scaledGridSize) - scaledGridSize / 2;
+  const offsetY = (panY % scaledGridSize) - scaledGridSize / 2;
 
-  for (let x = 0; x < width; x += 25) {
-    for (let y = 0; y < height; y += 25) {
-      const dot = document.createElement("div");
-      dot.className = "grid-dot";
-      dot.style.left = `${x}px`;
-      dot.style.top = `${y}px`;
-      gridContainer.appendChild(dot);
-    }
-  }
+  // Set the background size and position based on pan and zoom
+  gridContainer.style.backgroundSize = `${scaledGridSize}px ${scaledGridSize}px`;
+  gridContainer.style.backgroundPosition = `${offsetX}px ${offsetY}px`;
+  updateConnections();
 }
+// Initial grid update
+updateGrid();
 
-createGrid();
+// Apply the drag logic to all existing wrappers
+document.querySelectorAll(".wrapper").forEach((wrapper) => {
+  addDragAndDrop(wrapper);
+});
 
 function changeColor(element) {
   const colors = ["red", "green", "blue", "yellow"];
@@ -623,8 +711,6 @@ function changeColor(element) {
 }
 
 function deletewrapper(wrapperId) {
-  console.log("test");
-
   //get all the anchors of the wrapper
   let anchors = document.querySelectorAll(`#${wrapperId} .anchor-point`);
   //remove all the connections from the connections array and the svg
@@ -654,15 +740,45 @@ start();
 function editmode(status) {
   //move editindicator to the right position if false
   let editindicator = document.getElementById("editindicator");
-  let viewmode = document.getElementById("viewmode");
+  let viewmodediv = document.getElementById("viewmodediv");
   let editmode = document.getElementById("editmode");
   if (status == false) {
+    //hide all items with the class viewmode
+    let viewmode = document.querySelectorAll(".viewmode");
+    viewmode.forEach((element) => {
+      element.style.display = "none";
+    });
+
+    //only hide anchors if they are not connected
+    let anchors = document.querySelectorAll(".anchor-point");
+    anchors.forEach((anchor) => {
+      let connected = false;
+      connections.forEach((connection) => {
+        if (connection.from == anchor.id || connection.to == anchor.id) {
+          connected = true;
+        }
+      });
+      if (connected == false) {
+        anchor.style.display = "none";
+      }
+    });
+
     editindicator.style.left = "50%";
-    viewmode.style.color = "#fff";
+    viewmodediv.style.color = "#fff";
     editmode.style.color = "#000";
   } else {
+    //show all items with the class viewmode
+    let viewmode = document.querySelectorAll(".viewmode");
+    viewmode.forEach((element) => {
+      element.style.display = "";
+    });
+    //show all anchors
+    let anchors = document.querySelectorAll(".anchor-point");
+    anchors.forEach((anchor) => {
+      anchor.style.display = "";
+    });
     editindicator.style.left = "0px";
-    viewmode.style.color = "#000";
+    viewmodediv.style.color = "#000";
     editmode.style.color = "#fff";
   }
 

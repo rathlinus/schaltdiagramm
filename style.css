@@ -18,11 +18,13 @@ h2 {
   position: absolute;
   cursor: move;
   border: 1px black solid;
+  /* drop shadow */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .container {
   width: 450px;
-  min-height: 100px;
+  min-height: 75px !important;
   background-color: #fff;
   display: flex;
   justify-content: space-between;
@@ -73,13 +75,12 @@ h2 {
 
 .devicename {
   height: calc(100% - 25px);
-  margin-top: 25px;
   background-color: rgb(217, 217, 217);
   text-align: center;
+  margin-top: 25px;
 }
 
 .device {
-  height: calc(100% - 25px);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -109,7 +110,10 @@ textarea.devicename {
   width: 100%;
   height: 100%;
   pointer-events: none; /* Allows clicks to pass through */
-  z-index: 0 !important;
+
+  /* Grid dots using radial-gradient */
+  background-image: radial-gradient(circle, #ccc 2px, transparent 1px);
+  background-size: 25px 25px; /* Default grid size */
 }
 
 .grid-dot {
@@ -120,6 +124,7 @@ textarea.devicename {
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
+  z-index: 0 !important;
 }
 
 .close-button {
@@ -172,9 +177,10 @@ textarea.devicename {
 }
 
 .plus-icon {
-  position: relative;
-  left: calc(50% - 10px);
-  top: -10px;
+  position: absolute;
+  bottom: inherit;
+  left: inherit;
+  transform: translate(65px, -10px);
   cursor: pointer;
   width: 20px;
   height: 20px;
@@ -189,7 +195,6 @@ textarea.devicename {
 .plus-icon:hover {
   background-color: lightblue;
   transition: 0.2s ease-out;
-  transform: scale(1.1);
 }
 
 #connection-lines {
@@ -204,6 +209,14 @@ textarea.devicename {
   height: 100%;
   background-color: #f4f4f4;
   z-index: 1 !important;
+}
+
+.primary {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #f0f0f0;
 }
 
 #editindicator {
@@ -225,7 +238,17 @@ textarea.devicename {
   transition: 0.2s ease-out;
 }
 
-#viewmode {
+#viewmodediv {
   position: absolute;
   right: 0;
+}
+
+.wrapper-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+polyline {
+  pointer-events: none;
 }
