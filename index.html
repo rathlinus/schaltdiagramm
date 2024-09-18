@@ -26,6 +26,27 @@
         </select>
         <button onclick="addWrapper()">Add Device</button>
       </div>
+
+      <button onclick="exportData()">Export Data</button>
+
+      <input type="file" id="fileInput" accept=".json" />
+
+      <script>
+        document
+          .getElementById("fileInput")
+          .addEventListener("change", function (e) {
+            const file = e.target.files[0];
+            if (!file) {
+              return;
+            }
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              const contents = e.target.result;
+              importData(contents);
+            };
+            reader.readAsText(file);
+          });
+      </script>
     </div>
     <div class="primary">
       <div class="wrapper-container"></div>

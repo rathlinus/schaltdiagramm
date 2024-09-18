@@ -21,18 +21,31 @@ const panSpeed = 1;
 // Event listener for zooming
 primary.addEventListener("wheel", (e) => {
   e.preventDefault();
-  const zoom = e.deltaY * -zoomSpeed;
 
-  // Apply scaling
-  scale += zoom;
+  const zoomAmount = e.deltaY * -zoomSpeed;
+
+  // Calculate the position of the mouse relative to the canvas
+  const mouseX = e.clientX;
+  const mouseY = e.clientY;
+
+  // Calculate the zoom factor
+  const previousScale = scale;
+  scale += zoomAmount;
   scale = Math.min(Math.max(0.1, scale), 4); // Clamp zoom between 0.1 and 4
+
+  // Calculate the adjustment to the pan based on the mouse position and the zoom level
+  const zoomFactor = scale / previousScale;
+
+  // Adjust panX and panY to zoom in/out towards the mouse position
+  panX = mouseX - (mouseX - panX) * zoomFactor;
+  panY = mouseY - (mouseY - panY) * zoomFactor;
+
+  // Update the transform and grid based on the new zoom and pan
   updateTransform();
   updateGrid();
 });
 
-// Event listeners for panning (only with middle mouse button)
 primary.addEventListener("mousedown", (e) => {
-  // Check if middle mouse button is pressed for panning
   if (e.button === 1 && !isDraggingWrapper) {
     isPanning = true;
     primary.style.cursor = "grabbing";
@@ -40,8 +53,9 @@ primary.addEventListener("mousedown", (e) => {
     startY = e.clientY - panY;
     e.preventDefault();
   } else if (e.button === 0 && e.target.classList.contains("anchor-point")) {
-    // Start dragging the anchor point, no panning
     isDraggingWrapper = true; // Set flag only for dragging
+  } else {
+    isPanning = false; // Prevent panning when clicking on other buttons or elements
   }
 });
 
@@ -189,10 +203,9 @@ function addDragAndDrop(wrapper) {
       currentLine = createLine(startX, startY, startX, startY);
       document.addEventListener("mousemove", onAnchorMouseMove);
       document.addEventListener("mouseup", onAnchorMouseUp);
-      return; // Exit here to avoid triggering wrapper dragging logic
+      return;
     }
 
-    // Wrapper dragging logic
     isDragging = true;
     startX = e.clientX;
     startY = e.clientY;
@@ -213,7 +226,6 @@ function addDragAndDrop(wrapper) {
     wrapper.style.left = `${newLeft}px`;
     wrapper.style.top = `${newTop}px`;
 
-    // Recalculate and redraw all lines connected to this wrapper
     updateConnections();
   }
 
@@ -238,9 +250,8 @@ function addDragAndDrop(wrapper) {
       const toRect = target.getBoundingClientRect();
 
       const midX = (fromRect.left + toRect.left) / 2;
-      const offsetX = 50; // Introduce an initial offset to ensure spacing
+      const offsetX = -50;
 
-      // Add connection to the array with initial positions, midpoint, and offset
       connections.push({
         from: currentDraggingAnchor.id,
         to: target.id,
@@ -249,10 +260,9 @@ function addDragAndDrop(wrapper) {
         toX: toRect.left,
         toY: toRect.top,
         midX: midX,
-        offsetX: offsetX, // Store the offset
+        offsetX: offsetX,
       });
 
-      // Draw the line using the stored offset
       updateLineFromStoredData({
         from: currentDraggingAnchor.id,
         to: target.id,
@@ -267,13 +277,20 @@ function addDragAndDrop(wrapper) {
       currentLine.setAttribute("data-from", currentDraggingAnchor.id);
       currentLine.setAttribute("data-to", target.id);
 
-      // Adjust duplicate midpoints if necessary
       adjustDuplicateMidpoints();
     } else {
-      document.getElementById("connection-lines").removeChild(currentLine);
+      // Ensure currentLine exists before trying to remove it
+      if (currentLine && currentLine.parentNode) {
+        document.getElementById("connection-lines").removeChild(currentLine);
+      }
     }
+
     currentDraggingAnchor = null;
     currentLine = null;
+    isDraggingWrapper = false; // Reset the flag after drawing the line
+    isPanning = false; // Ensure panning is re-enabled
+    primary.style.cursor = "default"; // Reset the cursor
+
     document.removeEventListener("mousemove", onAnchorMouseMove);
     document.removeEventListener("mouseup", onAnchorMouseUp);
   }
@@ -781,6 +798,107 @@ function editmode(status) {
     viewmodediv.style.color = "#000";
     editmode.style.color = "#fff";
   }
+}
 
-  //hide all items with the class
+function exportData() {
+  // Collect all wrappers and their data
+  const wrappers = [];
+  document.querySelectorAll(".wrapper").forEach((wrapper) => {
+    const wrapperData = {
+      id: wrapper.id,
+      type: wrapper.getAttribute("data-type"),
+      left: wrapper.style.left,
+      top: wrapper.style.top,
+      content: wrapper.innerHTML, // You might want to extract specific data instead of innerHTML
+    };
+    wrappers.push(wrapperData);
+  });
+
+  // Collect connections
+  const exportedConnections = connections.map((conn) => ({
+    from: conn.from,
+    to: conn.to,
+    midX: conn.midX,
+    offsetX: conn.offsetX,
+  }));
+
+  // Collect global variables
+  const state = {
+    wrapperCount,
+    selectedtype,
+    scale,
+    panX,
+    panY,
+    wrappers,
+    connections: exportedConnections,
+  };
+
+  const jsonData = JSON.stringify(state, null, 2);
+
+  // Trigger a download of the JSON file
+  const blob = new Blob([jsonData], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "exported_data.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(jsonData) {
+  const state = JSON.parse(jsonData);
+
+  // Reset the application state
+  wrapperContainer.innerHTML = ""; // Clear existing wrappers
+  connections = []; // Clear existing connections
+
+  // Restore global variables
+  wrapperCount = state.wrapperCount;
+  selectedtype = state.selectedtype;
+  scale = state.scale;
+  panX = state.panX;
+  panY = state.panY;
+  updateTransform(); // Apply pan and zoom
+
+  // Recreate wrappers
+  state.wrappers.forEach((wrapperData) => {
+    const newWrapper = document.createElement("div");
+    newWrapper.className = "wrapper";
+    newWrapper.id = wrapperData.id;
+    newWrapper.style.left = wrapperData.left;
+    newWrapper.style.top = wrapperData.top;
+    newWrapper.setAttribute("data-type", wrapperData.type);
+    newWrapper.innerHTML = wrapperData.content;
+
+    wrapperContainer.appendChild(newWrapper);
+    addDragAndDrop(newWrapper); // Re-apply drag and drop functionality
+  });
+
+  // Recreate connections
+  state.connections.forEach((connData) => {
+    const fromAnchor = document.getElementById(connData.from);
+    const toAnchor = document.getElementById(connData.to);
+    if (fromAnchor && toAnchor) {
+      const fromRect = fromAnchor.getBoundingClientRect();
+      const toRect = toAnchor.getBoundingClientRect();
+
+      connections.push({
+        from: connData.from,
+        to: connData.to,
+        fromX: fromRect.left,
+        fromY: fromRect.top,
+        toX: toRect.left,
+        toY: toRect.top,
+        midX: connData.midX,
+        offsetX: connData.offsetX,
+      });
+
+      // Redraw the connection line
+      updateLineFromStoredData(connections[connections.length - 1]);
+    }
+  });
+
+  // Adjust connections to avoid overlaps
+  adjustDuplicateMidpoints();
+  updateConnections();
 }

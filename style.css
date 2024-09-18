@@ -114,6 +114,7 @@ textarea.devicename {
   /* Grid dots using radial-gradient */
   background-image: radial-gradient(circle, #ccc 2px, transparent 1px);
   background-size: 25px 25px; /* Default grid size */
+  z-index: 0 !important;
 }
 
 .grid-dot {
@@ -247,6 +248,7 @@ textarea.devicename {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: 1 !important;
 }
 
 polyline {
